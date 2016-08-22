@@ -1,14 +1,21 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
 )
 
+var (
+	port = flag.Int("port", 8765, "The server port")
+)
+
 func main() {
-	// Listen on TCP port 2000 on all interfaces.
-	l, err := net.Listen("tcp", ":2000")
+	flag.Parse()
+	// Listen on TCP port *port on all interfaces.
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatal(err)
 	}
