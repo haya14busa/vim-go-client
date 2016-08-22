@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -29,11 +30,46 @@ func main() {
 		// Handle the connection in a new goroutine.
 		// The loop then returns to accepting, so that
 		// multiple connections may be served concurrently.
-		go func(c net.Conn) {
-			// Echo all incoming data.
-			io.Copy(c, c)
-			// Shut down the connection.
-			c.Close()
-		}(conn)
+		go handleConn(conn)
 	}
+}
+
+type Message struct {
+	Id   string      `json:"id"`
+	Data interface{} `json:"data"`
+}
+
+func handleConn(c net.Conn) {
+	// Shut down the connection.
+	defer c.Close()
+
+	msgID, expr, err := decodeMsg(c)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fmt.Println(msgID, expr)
+
+	// Echo all incoming data.
+	// io.Copy(c, c)
+}
+
+// decodeMsg decodes message from vim channel.
+func decodeMsg(r io.Reader) (msgID int, expr interface{}, err error) {
+	d := json.NewDecoder(r)
+	var vimMsg interface{} // [{number},{expr}]
+	if err := d.Decode(&vimMsg); err != nil {
+		return 0, nil, fmt.Errorf("fail to decode vim message: %v", err)
+	}
+	ms, ok := vimMsg.([]interface{})
+	if !ok {
+		return 0, nil, fmt.Errorf("expects [{number},{expr}], but got %v", vimMsg)
+	}
+	number, ok := ms[0].(float64)
+	if !ok {
+		return 0, nil, fmt.Errorf("expects message ID, but got %+v", ms[0])
+	}
+	msgID = int(number)
+	expr = ms[1]
+	return msgID, expr, nil
 }
