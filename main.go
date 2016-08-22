@@ -25,12 +25,21 @@ func main() {
 		// Wait for a connection.
 		conn, err := l.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			continue
 		}
+
+		c, ok := conn.(*net.TCPConn)
+		if !ok {
+			log.Println(err)
+			continue
+		}
+
 		// Handle the connection in a new goroutine.
 		// The loop then returns to accepting, so that
 		// multiple connections may be served concurrently.
-		go handleConn(conn)
+		// go handleConn(conn)
+		go handleConn(c)
 	}
 }
 
@@ -40,18 +49,21 @@ type Message struct {
 }
 
 func handleConn(c net.Conn) {
-	// Shut down the connection.
-	defer c.Close()
+	// XXX: Do not shutdown connection for vim client. is it ok???
+	// defer c.Close()
 
 	msgID, expr, err := decodeMsg(c)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Println(msgID, expr)
 
-	// Echo all incoming data.
-	// io.Copy(c, c)
+	resp := []interface{}{msgID, expr}
+
+	e := json.NewEncoder(c)
+	if err := e.Encode(resp); err != nil {
+		log.Println(err)
+	}
 }
 
 // decodeMsg decodes message from vim channel.
