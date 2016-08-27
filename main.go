@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 )
@@ -43,45 +43,35 @@ func main() {
 	}
 }
 
-type Message struct {
-	Id   string      `json:"id"`
-	Data interface{} `json:"data"`
-}
-
 func handleConn(c net.Conn) {
-	// XXX: Do not shutdown connection for vim client. is it ok???
-	// defer c.Close()
+	defer c.Close()
 
-	msgID, expr, err := decodeMsg(c)
-	if err != nil {
-		log.Println(err)
-		return
+	scanner := bufio.NewScanner(c)
+	for scanner.Scan() {
+		msgID, expr, err := unmarshalMsg(scanner.Bytes())
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		log.Println(msgID, expr)
 	}
-
-	resp := []interface{}{msgID, expr}
-
-	e := json.NewEncoder(c)
-	if err := e.Encode(resp); err != nil {
+	if err := scanner.Err(); err != nil {
 		log.Println(err)
 	}
 }
 
-// decodeMsg decodes message from vim channel.
-func decodeMsg(r io.Reader) (msgID int, expr interface{}, err error) {
-	d := json.NewDecoder(r)
-	var vimMsg interface{} // [{number},{expr}]
-	if err := d.Decode(&vimMsg); err != nil {
+// unmarshalMsg unmarshals json message from Vim.
+// msg format: [{number},{expr}]
+func unmarshalMsg(data []byte) (msgID int, expr interface{}, err error) {
+	var vimMsg [2]interface{}
+	if err := json.Unmarshal(data, &vimMsg); err != nil {
 		return 0, nil, fmt.Errorf("fail to decode vim message: %v", err)
 	}
-	ms, ok := vimMsg.([]interface{})
+	number, ok := vimMsg[0].(float64)
 	if !ok {
-		return 0, nil, fmt.Errorf("expects [{number},{expr}], but got %v", vimMsg)
-	}
-	number, ok := ms[0].(float64)
-	if !ok {
-		return 0, nil, fmt.Errorf("expects message ID, but got %+v", ms[0])
+		return 0, nil, fmt.Errorf("expects message ID, but got %+v", vimMsg[0])
 	}
 	msgID = int(number)
-	expr = ms[1]
+	expr = vimMsg[1]
 	return msgID, expr, nil
 }
