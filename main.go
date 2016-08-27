@@ -7,20 +7,47 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 )
 
 var (
 	port = flag.Int("port", 8765, "The server port")
 )
 
+var vimCon = make(chan net.Conn, 1)
+
 func main() {
 	flag.Parse()
+
+	addr := fmt.Sprintf("localhost:%d", *port)
+
 	// Listen on TCP port *port on all interfaces.
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer l.Close()
+	go serve(l)
+
+	p, err := NewVimServer(addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer p.Close()
+
+	scanner := bufio.NewScanner(os.Stdin)
+	con := <-vimCon
+	defer con.Close()
+	log.Println("connected to vim server!")
+	for scanner.Scan() {
+		log.Printf("send: %v", scanner.Text())
+		if _, err := con.Write(scanner.Bytes()); err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func serve(l net.Listener) {
 	for {
 		// Wait for a connection.
 		conn, err := l.Accept()
@@ -44,10 +71,15 @@ func main() {
 }
 
 func handleConn(c net.Conn) {
-	defer c.Close()
+	// defer c.Close()
+	vimCon <- c
+
+	fmt.Printf("local addr: %v\n", c.LocalAddr())
+	fmt.Printf("remote addr: %v\n", c.RemoteAddr())
 
 	scanner := bufio.NewScanner(c)
 	for scanner.Scan() {
+		log.Printf("receive: %v", scanner.Text())
 		msgID, expr, err := unmarshalMsg(scanner.Bytes())
 		if err != nil {
 			log.Println(err)
