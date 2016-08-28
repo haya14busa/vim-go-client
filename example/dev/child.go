@@ -38,13 +38,21 @@ func main() {
 
 	cli.Normal("gg")
 
-	for i := 0; i < 3; i++ {
-		fmt.Println(cli.Expr(fmt.Sprintf("1+%d", i)))
+	{
+		start := time.Now()
+		for i := 0; i < 3; i++ {
+			fmt.Println(cli.Expr(fmt.Sprintf("1+%d", i)))
+		}
+		log.Printf("cli.Expr * 3: finished in %v", time.Now().Sub(start))
 	}
 
-	fmt.Println(cli.Call("matchstr", "testing", "ing"))
-	fmt.Println(cli.Call("matchstr", "testing", "ing", 2))
-	fmt.Println(cli.Call("matchstr", "testing", "ing", 5))
+	{
+		start := time.Now()
+		fmt.Println(cli.Call("matchstr", "testing", "ing"))
+		fmt.Println(cli.Call("matchstr", "testing", "ing", 2))
+		fmt.Println(cli.Call("matchstr", "testing", "ing", 5))
+		log.Printf("cli.Call: finished in %v", time.Now().Sub(start))
+	}
 
 	if err := cli.Ex("hoge"); err != nil {
 		fmt.Printf(":hoge error: %v\n", err)
