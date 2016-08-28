@@ -45,7 +45,7 @@ func main() {
 	for scanner.Scan() {
 		log.Printf("send: %v", scanner.Text())
 		if _, err := cli.Conn.Write(scanner.Bytes()); err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 	}
 }
