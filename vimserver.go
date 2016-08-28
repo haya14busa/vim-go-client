@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"text/template"
 	"time"
+
+	"local/haya14busa/go-vim-server/remote"
 )
 
 // Process represents Vim server process.
@@ -80,6 +82,11 @@ func vimServerCmd(extraArgs []string) (*exec.Cmd, error) {
 }
 
 func Connect(addr, vimServerName string, server *Server) (*Client, error) {
+	if !remote.IsServed(vimServerName) {
+		return nil, fmt.Errorf("server not found in vim --serverlist: %v", vimServerName)
+
+	}
+
 	tmpfile, err := connectTmpFile(addr)
 	if err != nil {
 		return nil, err
