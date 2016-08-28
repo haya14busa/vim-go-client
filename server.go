@@ -1,11 +1,10 @@
-package main
+package vim
 
 import (
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 )
 
@@ -32,7 +31,7 @@ func (srv *Server) Serve(l net.Listener) error {
 		conn, err := l.Accept()
 		if err != nil {
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				log.Println(err)
+				logger.Println(err)
 				continue
 			}
 			return err
@@ -58,13 +57,14 @@ func (srv *Server) handleConn(c net.Conn) {
 	for scanner.Scan() {
 		msg, err := unmarshalMsg(scanner.Bytes())
 		if err != nil {
-			log.Println(err)
+			// TODO: handler err
+			logger.Println(err)
 			continue
 		}
 		srv.Handler.Serve(c, msg)
 	}
 	if err := scanner.Err(); err != nil {
-		log.Println(err)
+		logger.Println(err)
 	}
 }
 

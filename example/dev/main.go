@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"os"
+
+	vim "local/haya14busa/go-vim-server"
 )
 
 var (
@@ -16,7 +18,7 @@ var (
 
 type myHandler struct{}
 
-func (h *myHandler) Serve(w io.Writer, msg *Message) {
+func (h *myHandler) Serve(w io.Writer, msg *vim.Message) {
 	log.Printf("receive: %#v", msg)
 }
 
@@ -31,10 +33,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer l.Close()
-	server := &Server{Handler: &myHandler{}}
+	server := &vim.Server{Handler: &myHandler{}}
 	go server.Serve(l)
 
-	p, err := NewVimServer(addr)
+	p, err := vim.NewVimServer(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
