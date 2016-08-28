@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
@@ -11,12 +10,13 @@ import (
 )
 
 var (
-	port = flag.Int("port", 8765, "The server port")
+	port       = flag.Int("port", 8765, "The server port")
+	servername = flag.String("servername", "VIM", "vim servername")
 )
 
 type myHandler struct{}
 
-func (h *myHandler) Serve(w io.Writer, msg *vim.Message) {
+func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 	log.Printf("receive: %#v", msg)
 }
 
@@ -34,12 +34,12 @@ func main() {
 	server := &vim.Server{Handler: &myHandler{}}
 	go server.Serve(l)
 
-	vim.Connect(addr, "VIM")
-
-	conn, err := server.Connect()
+	cli, err := vim.Connect(addr, *servername, server)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
+
+	fmt.Println(cli.Expr("1+1"))
+
 	log.Println("connected to vim server!")
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"text/template"
+	"time"
 )
 
 // Process represents Vim server process.
@@ -78,10 +79,10 @@ func vimServerCmd(extraArgs []string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func Connect(addr, vimServerName string) error {
+func Connect(addr, vimServerName string, server *Server) (*Client, error) {
 	tmpfile, err := connectTmpFile(addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cmd := exec.Command(
@@ -90,7 +91,25 @@ func Connect(addr, vimServerName string) error {
 		"--remote-expr", fmt.Sprintf("execute(':source %v')", tmpfile.Name()),
 	)
 
-	return cmd.Run()
+	savedHandler := server.Handler
+
+	h := &getCliHandler{
+		handler: savedHandler,
+		chCli:   make(chan *Client, 1),
+	}
+	server.Handler = h
+	defer func() { server.Handler = savedHandler }()
+
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	select {
+	case cli := <-h.chCli:
+		return cli, nil
+	case <-time.After(15 * time.Second):
+		return nil, ErrTimeOut
+	}
 }
 
 func connectTmpFile(addr string) (*os.File, error) {
