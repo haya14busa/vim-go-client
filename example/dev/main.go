@@ -42,6 +42,28 @@ func main() {
 	}
 	defer p.Close()
 
+	server.Ex("echom 'hi'")
+	server.Redraw("")
+	server.Redraw("force")
+
+	server.Normal("gg")
+
+	for i := 0; i < 3; i++ {
+		fmt.Println(server.Expr(fmt.Sprintf("1+%d", i)))
+	}
+
+	fmt.Println(server.Call("matchstr", "testing", "ing"))
+	fmt.Println(server.Call("matchstr", "testing", "ing", 2))
+	fmt.Println(server.Call("matchstr", "testing", "ing", 5))
+
+	if err := server.Ex("hoge"); err != nil {
+		fmt.Printf(":hoge error: %v\n", err)
+	}
+
+	if err := server.Ex("echom 'hi'"); err != nil {
+		fmt.Printf(":echom error: %v\n", err)
+	}
+
 	scanner := bufio.NewScanner(os.Stdin)
 	conn := server.Connect()
 	defer conn.Close()
