@@ -165,11 +165,11 @@ func (cli *Client) waitResp(n int) (Body, error) {
 }
 
 // Serve a new connection.
-func (cli *Client) Start() {
+func (cli *Client) Start() error {
 	scanner := bufio.NewScanner(cli.RW)
 	for scanner.Scan() {
 		msg, err := unmarshalMsg(scanner.Bytes())
-		logger.Printf("received raw msg: %v\n", scanner.Text())
+		logger.Printf("cli.Start() receive: %v\n", scanner.Text())
 		if err != nil {
 			// TODO: handler err
 			logger.Println(err)
@@ -178,11 +178,13 @@ func (cli *Client) Start() {
 		if msg.MsgID < 0 {
 			cli.fillResp(msg.MsgID, msg.Body)
 		}
-		cli.handler.Serve(cli, msg)
+		go cli.handler.Serve(cli, msg)
 	}
 	if err := scanner.Err(); err != nil {
 		logger.Println(err)
+		return err
 	}
+	return nil
 }
 
 // unmarshalMsg unmarshals json message from Vim.

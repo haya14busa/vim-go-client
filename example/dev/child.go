@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	vim "local/haya14busa/go-vim-server"
 )
@@ -14,6 +15,11 @@ type myHandler struct{}
 
 func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 	log.Printf("receive: %#v", msg)
+	if msg.MsgID > 0 {
+		start := time.Now()
+		log.Println(cli.Expr("eval(join(range(10), '+'))"))
+		log.Printf("cli.Expr: finished in %v", time.Now().Sub(start))
+	}
 }
 
 func main() {
