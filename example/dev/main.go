@@ -36,7 +36,7 @@ func main() {
 	server := &vim.Server{Handler: &myHandler{}}
 	go server.Serve(l)
 
-	p, err := vim.NewVimServer(addr)
+	p, err := vim.NewChildVimServer(addr)
 	if err != nil {
 		log.Fatal(err)
 	}

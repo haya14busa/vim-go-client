@@ -40,7 +40,7 @@ func init() {
 	connectTemplate = template.Must(template.New("connect").Parse(connectScript))
 }
 
-func NewVimServer(addr string) (*Process, error) {
+func NewChildVimServer(addr string) (*Process, error) {
 	tmpfile, err := ioutil.TempFile("", "go-vim-server")
 	if err != nil {
 		return nil, err
