@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"time"
 )
 
 type Client struct {
-	Conn    net.Conn
+	RW      io.ReadWriter
 	handler Handler
 
 	responses map[int]chan Body // TODO: need lock?
@@ -46,9 +47,9 @@ func (h *getCliHandler) Serve(cli *Client, msg *Message) {
 	h.handler.Serve(cli, msg)
 }
 
-func NewClient(conn net.Conn, handler Handler) *Client {
+func NewClient(rw io.ReadWriter, handler Handler) *Client {
 	return &Client{
-		Conn:    conn,
+		RW:      rw,
 		handler: handler,
 
 		responses: make(map[int]chan Body),
@@ -90,12 +91,12 @@ func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
 
 func (cli *Client) Redraw(force string) error {
 	v := []interface{}{"redraw", force}
-	return json.NewEncoder(cli.Conn).Encode(v)
+	return json.NewEncoder(cli.RW).Encode(v)
 }
 
 func (cli *Client) Ex(cmd string) error {
 	var err error
-	encoder := json.NewEncoder(cli.Conn)
+	encoder := json.NewEncoder(cli.RW)
 	err = encoder.Encode([]interface{}{"ex", "let v:errmsg = ''"})
 	err = encoder.Encode([]interface{}{"ex", cmd})
 	body, err := cli.Expr("v:errmsg")
@@ -107,13 +108,13 @@ func (cli *Client) Ex(cmd string) error {
 
 func (cli *Client) Normal(ncmd string) error {
 	v := []interface{}{"normal", ncmd}
-	return json.NewEncoder(cli.Conn).Encode(v)
+	return json.NewEncoder(cli.RW).Encode(v)
 }
 
 func (cli *Client) Expr(expr string) (Body, error) {
 	n := cli.prepareResp()
 	v := []interface{}{"expr", expr, n}
-	if err := json.NewEncoder(cli.Conn).Encode(v); err != nil {
+	if err := json.NewEncoder(cli.RW).Encode(v); err != nil {
 		return nil, err
 	}
 	return cli.waitResp(n)
@@ -122,7 +123,7 @@ func (cli *Client) Expr(expr string) (Body, error) {
 func (cli *Client) Call(funcname string, args ...interface{}) (Body, error) {
 	n := cli.prepareResp()
 	v := []interface{}{"call", funcname, args, n}
-	if err := json.NewEncoder(cli.Conn).Encode(v); err != nil {
+	if err := json.NewEncoder(cli.RW).Encode(v); err != nil {
 		return nil, err
 	}
 	return cli.waitResp(n)
@@ -164,10 +165,11 @@ func (cli *Client) waitResp(n int) (Body, error) {
 }
 
 // Serve a new connection.
-func (cli *Client) handleConn() {
-	scanner := bufio.NewScanner(cli.Conn)
+func (cli *Client) Start() {
+	scanner := bufio.NewScanner(cli.RW)
 	for scanner.Scan() {
 		msg, err := unmarshalMsg(scanner.Bytes())
+		logger.Printf("received raw msg: %v\n", scanner.Text())
 		if err != nil {
 			// TODO: handler err
 			logger.Println(err)

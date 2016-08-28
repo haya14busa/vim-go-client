@@ -44,7 +44,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		log.Printf("send: %v", scanner.Text())
-		if _, err := cli.Conn.Write(scanner.Bytes()); err != nil {
+		if _, err := cli.RW.Write(scanner.Bytes()); err != nil {
 			log.Fatal(err)
 		}
 	}

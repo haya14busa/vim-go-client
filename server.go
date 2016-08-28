@@ -40,7 +40,7 @@ func (srv *Server) Serve(l net.Listener) error {
 		// Handle the connection in a new goroutine.
 		// The loop then returns to accepting, so that
 		// multiple connections may be served concurrently.
-		go cli.handleConn()
+		go cli.Start()
 	}
 	return nil
 }
