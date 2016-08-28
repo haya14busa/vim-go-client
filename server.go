@@ -43,7 +43,7 @@ func (srv *Server) initServer() {
 
 func (srv *Server) Redraw(force string) error {
 	v := []interface{}{"redraw", force}
-	conn, err := srv.Connect()
+	conn, err := srv.Connection()
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (srv *Server) Redraw(force string) error {
 
 func (srv *Server) Ex(cmd string) error {
 	var err error
-	conn, err := srv.Connect()
+	conn, err := srv.Connection()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (srv *Server) Ex(cmd string) error {
 
 func (srv *Server) Normal(ncmd string) error {
 	v := []interface{}{"normal", ncmd}
-	conn, err := srv.Connect()
+	conn, err := srv.Connection()
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (srv *Server) Normal(ncmd string) error {
 func (srv *Server) Expr(expr string) (Body, error) {
 	n := srv.prepareResp()
 	v := []interface{}{"expr", expr, n}
-	conn, err := srv.Connect()
+	conn, err := srv.Connection()
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (srv *Server) Expr(expr string) (Body, error) {
 func (srv *Server) Call(funcname string, args ...interface{}) (Body, error) {
 	n := srv.prepareResp()
 	v := []interface{}{"call", funcname, args, n}
-	conn, err := srv.Connect()
+	conn, err := srv.Connection()
 	if err != nil {
 		return nil, err
 	}
@@ -157,14 +157,14 @@ func (srv *Server) Serve(l net.Listener) error {
 	return nil
 }
 
-// Connect returns connection to vim. If connection hasn't been established
+// Connection returns connection to vim. If connection hasn't been established
 // yet, wait for connection establishment.
-func (srv *Server) Connect() (net.Conn, error) {
+func (srv *Server) Connection() (net.Conn, error) {
 	if srv.conn != nil {
 		return srv.conn, nil
 	}
 	srv.initServer()
-	logger.Println("Connect() waits connection", srv.chConn)
+	logger.Println("Connection() waits connection", srv.chConn)
 	select {
 	case srv.conn = <-srv.chConn:
 		return srv.conn, nil

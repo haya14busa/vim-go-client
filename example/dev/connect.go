@@ -34,6 +34,8 @@ func main() {
 	server := &vim.Server{Handler: &myHandler{}}
 	go server.Serve(l)
 
+	vim.Connect(addr, "VIM")
+
 	conn, err := server.Connect()
 	if err != nil {
 		log.Fatal(err)

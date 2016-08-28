@@ -41,13 +41,10 @@ func init() {
 }
 
 func NewChildVimServer(addr string) (*Process, error) {
-	tmpfile, err := ioutil.TempFile("", "go-vim-server")
+	tmpfile, err := connectTmpFile(addr)
 	if err != nil {
 		return nil, err
 	}
-	defer tmpfile.Close()
-
-	connectTemplate.Execute(tmpfile, struct{ Addr string }{addr})
 
 	cmd, err := vimServerCmd([]string{"-S", tmpfile.Name()})
 	if err != nil {
@@ -79,4 +76,30 @@ func vimServerCmd(extraArgs []string) (*exec.Cmd, error) {
 		Stderr: &stderr,
 	}
 	return cmd, nil
+}
+
+func Connect(addr, vimServerName string) error {
+	tmpfile, err := connectTmpFile(addr)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(
+		"vim",
+		"--servername", vimServerName,
+		"--remote-expr", fmt.Sprintf("execute(':source %v')", tmpfile.Name()),
+	)
+
+	return cmd.Run()
+}
+
+func connectTmpFile(addr string) (*os.File, error) {
+	tmpfile, err := ioutil.TempFile("", "go-vim-server")
+	if err != nil {
+		return nil, err
+	}
+	defer tmpfile.Close()
+
+	connectTemplate.Execute(tmpfile, struct{ Addr string }{addr})
+	return tmpfile, nil
 }
