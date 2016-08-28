@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	vim "local/haya14busa/go-vim-server"
 )
@@ -39,7 +41,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(cli.Expr("1+1"))
-
-	log.Println("connected to vim server!")
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		log.Printf("send: %v", scanner.Text())
+		if _, err := cli.Conn.Write(scanner.Bytes()); err != nil {
+			log.Println(err)
+		}
+	}
 }
