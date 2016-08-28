@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var ErrTimeOut = errors.New("time out!")
+
 type Body interface{}
 
 type Message struct {
@@ -30,14 +32,31 @@ type Server struct {
 	responses map[int]chan Body // TODO: need lock?
 }
 
+func (srv *Server) initServer() {
+	if srv.chConn == nil {
+		srv.chConn = make(chan net.Conn, 1)
+	}
+	if srv.responses == nil {
+		srv.responses = make(map[int]chan Body)
+	}
+}
+
 func (srv *Server) Redraw(force string) error {
 	v := []interface{}{"redraw", force}
-	return json.NewEncoder(srv.Connect()).Encode(v)
+	conn, err := srv.Connect()
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(conn).Encode(v)
 }
 
 func (srv *Server) Ex(cmd string) error {
-	encoder := json.NewEncoder(srv.Connect())
 	var err error
+	conn, err := srv.Connect()
+	if err != nil {
+		return err
+	}
+	encoder := json.NewEncoder(conn)
 	err = encoder.Encode([]interface{}{"ex", "let v:errmsg = ''"})
 	err = encoder.Encode([]interface{}{"ex", cmd})
 	body, err := srv.Expr("v:errmsg")
@@ -49,13 +68,21 @@ func (srv *Server) Ex(cmd string) error {
 
 func (srv *Server) Normal(ncmd string) error {
 	v := []interface{}{"normal", ncmd}
-	return json.NewEncoder(srv.Connect()).Encode(v)
+	conn, err := srv.Connect()
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(conn).Encode(v)
 }
 
 func (srv *Server) Expr(expr string) (Body, error) {
 	n := srv.prepareResp()
 	v := []interface{}{"expr", expr, n}
-	if err := json.NewEncoder(srv.Connect()).Encode(v); err != nil {
+	conn, err := srv.Connect()
+	if err != nil {
+		return nil, err
+	}
+	if err := json.NewEncoder(conn).Encode(v); err != nil {
 		return nil, err
 	}
 	return srv.waitResp(n)
@@ -64,7 +91,11 @@ func (srv *Server) Expr(expr string) (Body, error) {
 func (srv *Server) Call(funcname string, args ...interface{}) (Body, error) {
 	n := srv.prepareResp()
 	v := []interface{}{"call", funcname, args, n}
-	if err := json.NewEncoder(srv.Connect()).Encode(v); err != nil {
+	conn, err := srv.Connect()
+	if err != nil {
+		return nil, err
+	}
+	if err := json.NewEncoder(conn).Encode(v); err != nil {
 		return nil, err
 	}
 	return srv.waitResp(n)
@@ -97,15 +128,14 @@ func (srv *Server) waitResp(n int) (Body, error) {
 	case body := <-srv.responses[n]:
 		delete(srv.responses, n)
 		return body, nil
-	case <-time.After(3 * time.Second):
-		return nil, errors.New("time out!")
+	case <-time.After(15 * time.Second):
+		return nil, ErrTimeOut
 	}
 }
 
 func (srv *Server) Serve(l net.Listener) error {
 	defer l.Close()
-	srv.chConn = make(chan net.Conn, 1)
-	srv.responses = make(map[int]chan Body)
+	srv.initServer()
 	for {
 		// Wait for a connection.
 		conn, err := l.Accept()
@@ -129,12 +159,18 @@ func (srv *Server) Serve(l net.Listener) error {
 
 // Connect returns connection to vim. If connection hasn't been established
 // yet, wait for connection establishment.
-func (srv *Server) Connect() net.Conn {
+func (srv *Server) Connect() (net.Conn, error) {
 	if srv.conn != nil {
-		return srv.conn
+		return srv.conn, nil
 	}
-	srv.conn = <-srv.chConn
-	return srv.conn
+	srv.initServer()
+	logger.Println("Connect() waits connection", srv.chConn)
+	select {
+	case srv.conn = <-srv.chConn:
+		return srv.conn, nil
+	case <-time.After(15 * time.Second):
+		return nil, ErrTimeOut
+	}
 }
 
 // Serve a new connection.

@@ -65,8 +65,10 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
-	conn := server.Connect()
-	defer conn.Close()
+	conn, err := server.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
 	log.Println("connected to vim server!")
 	for scanner.Scan() {
 		log.Printf("send: %v", scanner.Text())
