@@ -17,7 +17,7 @@ endif
 
 echo job_info(g:job)
 echo ch_info(g:ch)
-echo ch_sendexpr(g:job, 'hi')
+echo ch_evalexpr(g:ch, 'hi')
 
 " echo 'ch_sendraw: ' . ch_sendraw(g:job, "start!\n")
 " echo 'ch_sendraw: ' . ch_sendraw(g:job, "start!\n")

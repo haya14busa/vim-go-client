@@ -89,6 +89,11 @@ func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
 	}
 }
 
+func (cli *Client) Write(msg *Message) error {
+	v := [2]interface{}{msg.MsgID, msg.Body}
+	return json.NewEncoder(cli.RW).Encode(v)
+}
+
 func (cli *Client) Redraw(force string) error {
 	v := []interface{}{"redraw", force}
 	return json.NewEncoder(cli.RW).Encode(v)

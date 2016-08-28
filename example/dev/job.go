@@ -13,13 +13,19 @@ type myHandler struct{}
 
 func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 	log.Printf("receive: %#v", msg)
-	if msg.Body == "hi" {
-		cli.Ex("echom 'hi, how are you?'")
-	}
 	if msg.MsgID > 0 {
-		start := time.Now()
-		log.Println(cli.Expr("eval(join(range(10), '+'))"))
-		log.Printf("cli.Expr: finished in %v", time.Now().Sub(start))
+
+		if msg.Body == "hi" {
+			cli.Write(&vim.Message{
+				MsgID: msg.MsgID,
+				Body:  "hi how are you?",
+			})
+		} else {
+			start := time.Now()
+			log.Println(cli.Expr("eval(join(range(10), '+'))"))
+			log.Printf("cli.Expr: finished in %v", time.Now().Sub(start))
+		}
+
 	}
 }
 
