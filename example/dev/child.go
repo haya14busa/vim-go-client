@@ -12,10 +12,6 @@ import (
 	vim "local/haya14busa/go-vim-server"
 )
 
-var (
-	port = flag.Int("port", 8765, "The server port")
-)
-
 type myHandler struct{}
 
 func (h *myHandler) Serve(w io.Writer, msg *vim.Message) {
@@ -25,7 +21,7 @@ func (h *myHandler) Serve(w io.Writer, msg *vim.Message) {
 func main() {
 	flag.Parse()
 
-	addr := fmt.Sprintf("localhost:%d", *port)
+	addr := fmt.Sprintf("localhost:0")
 
 	// Listen on TCP port *port on all interfaces.
 	l, err := net.Listen("tcp", addr)
@@ -36,7 +32,7 @@ func main() {
 	server := &vim.Server{Handler: &myHandler{}}
 	go server.Serve(l)
 
-	p, err := vim.NewChildVimServer(addr)
+	p, err := vim.NewChildVimServer(l.Addr().String())
 	if err != nil {
 		log.Fatal(err)
 	}
