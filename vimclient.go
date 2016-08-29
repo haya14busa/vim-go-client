@@ -1,3 +1,7 @@
+// Package vim provides Vim client and server implementations.
+// You can start Vim as a server as a child process or connect to Vim, and
+// communicate with it via TCP or stdin/stdout.
+// :h channel.txt
 package vim
 
 import (
@@ -11,18 +15,25 @@ import (
 	"time"
 )
 
+// Client represents Vim client.
 type Client struct {
-	RW      io.ReadWriter
+	// RW is readwriter for communication between go-server and vim-server.
+	RW io.ReadWriter
+
+	// handler handles message from Vim.
 	handler Handler
 
+	// responses handles response from Vim.
 	responses map[int]chan Body // TODO: need lock?
 }
 
+// ChildCliCloser is closer of child Vim client process.
 type ChildCliCloser struct {
 	listener net.Listener
 	process  *Process
 }
 
+// Close closes child Vim client process.
 func (c *ChildCliCloser) Close() error {
 	var err error
 	err = c.process.Close()
@@ -32,6 +43,7 @@ func (c *ChildCliCloser) Close() error {
 
 var _ Handler = &getCliHandler{}
 
+// getCliHandler is handler to get one connected Vim client.
 type getCliHandler struct {
 	handler Handler
 
@@ -47,6 +59,7 @@ func (h *getCliHandler) Serve(cli *Client, msg *Message) {
 	h.handler.Serve(cli, msg)
 }
 
+// NewClient creates Vim client.
 func NewClient(rw io.ReadWriter, handler Handler) *Client {
 	return &Client{
 		RW:      rw,
@@ -56,6 +69,7 @@ func NewClient(rw io.ReadWriter, handler Handler) *Client {
 	}
 }
 
+// NewChildClient creates connected child process Vim client.
 func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
@@ -89,16 +103,19 @@ func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
 	}
 }
 
+// Write writes message to Vim.
 func (cli *Client) Write(msg *Message) error {
 	v := [2]interface{}{msg.MsgID, msg.Body}
 	return json.NewEncoder(cli.RW).Encode(v)
 }
 
+// Redraw runs command "redraw" (:h channel-commands).
 func (cli *Client) Redraw(force string) error {
 	v := []interface{}{"redraw", force}
 	return json.NewEncoder(cli.RW).Encode(v)
 }
 
+// Ex runs command "ex" (:h channel-commands).
 func (cli *Client) Ex(cmd string) error {
 	var err error
 	encoder := json.NewEncoder(cli.RW)
@@ -111,11 +128,13 @@ func (cli *Client) Ex(cmd string) error {
 	return err
 }
 
+// Normal runs command "normal" (:h channel-commands).
 func (cli *Client) Normal(ncmd string) error {
 	v := []interface{}{"normal", ncmd}
 	return json.NewEncoder(cli.RW).Encode(v)
 }
 
+// Expr runs command "expr" (:h channel-commands).
 func (cli *Client) Expr(expr string) (Body, error) {
 	n := cli.prepareResp()
 	v := []interface{}{"expr", expr, n}
@@ -125,6 +144,7 @@ func (cli *Client) Expr(expr string) (Body, error) {
 	return cli.waitResp(n)
 }
 
+// Call runs command "call" (:h channel-commands).
 func (cli *Client) Call(funcname string, args ...interface{}) (Body, error) {
 	n := cli.prepareResp()
 	v := []interface{}{"call", funcname, args, n}
@@ -148,7 +168,6 @@ func (cli *Client) prepareResp() int {
 		cli.responses[n] = make(chan Body, 1)
 		return n
 	}
-	return 0
 }
 
 // fillResp fills response which is prepared by Server.prepareResp().
@@ -169,7 +188,7 @@ func (cli *Client) waitResp(n int) (Body, error) {
 	}
 }
 
-// Serve a new connection.
+// Start starts to wait message from Vim.
 func (cli *Client) Start() error {
 	scanner := bufio.NewScanner(cli.RW)
 	for scanner.Scan() {

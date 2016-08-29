@@ -20,8 +20,10 @@ type Process struct {
 	script *os.File
 }
 
+// Close closes Vim process.
 func (p *Process) Close() error {
-	return os.Remove(p.script.Name())
+	os.Remove(p.script.Name())
+	return p.cmd.Process.Signal(os.Interrupt)
 }
 
 const connectScript = `
@@ -43,6 +45,7 @@ func init() {
 	connectTemplate = template.Must(template.New("connect").Parse(connectScript))
 }
 
+// NewChildVimServer creates Vim server process and connect to go-server by addr.
 func NewChildVimServer(addr string) (*Process, error) {
 	tmpfile, err := connectTmpFile(addr)
 	if err != nil {
@@ -81,6 +84,7 @@ func vimServerCmd(extraArgs []string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+// Connect connects server to Vim by servername (:h --servername)
 func Connect(addr, vimServerName string, server *Server) (*Client, error) {
 	if !remote.IsServed(vimServerName) {
 		return nil, fmt.Errorf("server not found in vim --serverlist: %v", vimServerName)
