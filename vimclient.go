@@ -174,7 +174,6 @@ func (cli *Client) Start() error {
 	scanner := bufio.NewScanner(cli.RW)
 	for scanner.Scan() {
 		msg, err := unmarshalMsg(scanner.Bytes())
-		logger.Printf("cli.Start() receive: %v\n", scanner.Text())
 		if err != nil {
 			// TODO: handler err
 			logger.Println(err)
