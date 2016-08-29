@@ -16,7 +16,7 @@ func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 	if msg.MsgID > 0 {
 
 		if msg.Body == "hi" {
-			cli.Write(&vim.Message{
+			cli.Send(&vim.Message{
 				MsgID: msg.MsgID,
 				Body:  "hi how are you?",
 			})

@@ -21,7 +21,7 @@ type myHandler struct{}
 func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 	log.Printf("receive: %#v", msg)
 	if msg.MsgID > 0 && msg.Body == "hi" {
-		cli.Write(&vim.Message{msg.MsgID, "hi from connected vim client"})
+		cli.Send(&vim.Message{msg.MsgID, "hi from connected vim client"})
 	}
 }
 
@@ -47,7 +47,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		log.Printf("send: %v", scanner.Text())
-		if _, err := cli.RW.Write(scanner.Bytes()); err != nil {
+		if _, err := cli.Write(scanner.Bytes()); err != nil {
 			log.Fatal(err)
 		}
 	}

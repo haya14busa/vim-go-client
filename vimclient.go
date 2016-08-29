@@ -17,8 +17,8 @@ import (
 
 // Client represents Vim client.
 type Client struct {
-	// RW is readwriter for communication between go-server and vim-server.
-	RW io.ReadWriter
+	// rw is readwriter for communication between go-server and vim-server.
+	rw io.ReadWriter
 
 	// handler handles message from Vim.
 	handler Handler
@@ -62,7 +62,7 @@ func (h *getCliHandler) Serve(cli *Client, msg *Message) {
 // NewClient creates Vim client.
 func NewClient(rw io.ReadWriter, handler Handler) *Client {
 	return &Client{
-		RW:      rw,
+		rw:      rw,
 		handler: handler,
 
 		responses: make(map[int]chan Body),
@@ -103,22 +103,27 @@ func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
 	}
 }
 
-// Write writes message to Vim.
-func (cli *Client) Write(msg *Message) error {
+// Send sends message to Vim.
+func (cli *Client) Send(msg *Message) error {
 	v := [2]interface{}{msg.MsgID, msg.Body}
-	return json.NewEncoder(cli.RW).Encode(v)
+	return json.NewEncoder(cli.rw).Encode(v)
+}
+
+// Write writes raw message to Vim.
+func (cli *Client) Write(p []byte) (n int, err error) {
+	return cli.rw.Write(p)
 }
 
 // Redraw runs command "redraw" (:h channel-commands).
 func (cli *Client) Redraw(force string) error {
 	v := []interface{}{"redraw", force}
-	return json.NewEncoder(cli.RW).Encode(v)
+	return json.NewEncoder(cli.rw).Encode(v)
 }
 
 // Ex runs command "ex" (:h channel-commands).
 func (cli *Client) Ex(cmd string) error {
 	var err error
-	encoder := json.NewEncoder(cli.RW)
+	encoder := json.NewEncoder(cli.rw)
 	err = encoder.Encode([]interface{}{"ex", "let v:errmsg = ''"})
 	err = encoder.Encode([]interface{}{"ex", cmd})
 	body, err := cli.Expr("v:errmsg")
@@ -131,14 +136,14 @@ func (cli *Client) Ex(cmd string) error {
 // Normal runs command "normal" (:h channel-commands).
 func (cli *Client) Normal(ncmd string) error {
 	v := []interface{}{"normal", ncmd}
-	return json.NewEncoder(cli.RW).Encode(v)
+	return json.NewEncoder(cli.rw).Encode(v)
 }
 
 // Expr runs command "expr" (:h channel-commands).
 func (cli *Client) Expr(expr string) (Body, error) {
 	n := cli.prepareResp()
 	v := []interface{}{"expr", expr, n}
-	if err := json.NewEncoder(cli.RW).Encode(v); err != nil {
+	if err := json.NewEncoder(cli.rw).Encode(v); err != nil {
 		return nil, err
 	}
 	return cli.waitResp(n)
@@ -148,7 +153,7 @@ func (cli *Client) Expr(expr string) (Body, error) {
 func (cli *Client) Call(funcname string, args ...interface{}) (Body, error) {
 	n := cli.prepareResp()
 	v := []interface{}{"call", funcname, args, n}
-	if err := json.NewEncoder(cli.RW).Encode(v); err != nil {
+	if err := json.NewEncoder(cli.rw).Encode(v); err != nil {
 		return nil, err
 	}
 	return cli.waitResp(n)
@@ -190,7 +195,7 @@ func (cli *Client) waitResp(n int) (Body, error) {
 
 // Start starts to wait message from Vim.
 func (cli *Client) Start() error {
-	scanner := bufio.NewScanner(cli.RW)
+	scanner := bufio.NewScanner(cli.rw)
 	for scanner.Scan() {
 		msg, err := unmarshalMsg(scanner.Bytes())
 		if err != nil {
