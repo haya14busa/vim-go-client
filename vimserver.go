@@ -26,13 +26,13 @@ func (p *Process) Close() error {
 	return p.cmd.Process.Signal(os.Interrupt)
 }
 
+// send [0, "init connection"] to go server to get initial connection.
 const connectScript = `
 call ch_logfile('/tmp/vimchannellog', 'w')
 while 1
-	let g:vim_server_handler = ch_open('{{ .Addr }}')
-	if ch_status(g:vim_server_handler) is# 'open'
-		echo 'open!'
-		call ch_sendexpr(g:vim_server_handler, 'connect')
+	let g:vim_go_client_handler = ch_open('{{ .Addr }}')
+	if ch_status(g:vim_go_client_handler) is# 'open'
+		call ch_sendraw(g:vim_go_client_handler, "[0, \"init connection\"]\n")
 		break
 	endif
 	sleep 50ms
