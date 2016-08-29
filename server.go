@@ -48,5 +48,4 @@ func (srv *Server) Serve(l net.Listener) error {
 		// multiple connections may be served concurrently.
 		go cli.Start()
 	}
-	// return nil
 }
