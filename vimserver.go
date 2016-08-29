@@ -9,7 +9,7 @@ import (
 	"text/template"
 	"time"
 
-	"local/haya14busa/go-vim-server/remote"
+	"github.com/haya14busa/vim-go-client/remote"
 )
 
 // Process represents Vim server process.
@@ -120,7 +120,7 @@ func Connect(addr, vimServerName string, server *Server) (*Client, error) {
 }
 
 func connectTmpFile(addr string) (*os.File, error) {
-	tmpfile, err := ioutil.TempFile("", "go-vim-server")
+	tmpfile, err := ioutil.TempFile("", "vim-go-client")
 	if err != nil {
 		return nil, err
 	}

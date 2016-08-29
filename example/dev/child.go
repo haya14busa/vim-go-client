@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	vim "local/haya14busa/go-vim-server"
+	vim "github.com/haya14busa/vim-go-client"
 )
 
 type myHandler struct{}

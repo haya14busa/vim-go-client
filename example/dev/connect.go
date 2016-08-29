@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 
-	vim "local/haya14busa/go-vim-server"
+	vim "github.com/haya14busa/vim-go-client"
 )
 
 var (
