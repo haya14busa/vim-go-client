@@ -46,13 +46,13 @@ func init() {
 }
 
 // NewChildVimServer creates Vim server process and connect to go-server by addr.
-func NewChildVimServer(addr string) (*Process, error) {
+func NewChildVimServer(addr string, args []string) (*Process, error) {
 	tmpfile, err := connectTmpFile(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd, err := vimServerCmd([]string{"-S", tmpfile.Name()})
+	cmd, err := vimServerCmd(append([]string{"-S", tmpfile.Name()}, args...))
 	if err != nil {
 		return nil, err
 	}

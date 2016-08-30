@@ -25,7 +25,7 @@ func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 func main() {
 	flag.Parse()
 
-	cli, closer, err := vim.NewChildClient(&myHandler{})
+	cli, closer, err := vim.NewChildClient(&myHandler{}, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

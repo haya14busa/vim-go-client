@@ -73,13 +73,13 @@ func NewClient(rw io.ReadWriter, handler Handler) *Client {
 }
 
 // NewChildClient creates connected child process Vim client.
-func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
+func NewChildClient(handler Handler, args []string) (*Client, *ChildCliCloser, error) {
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	p, err := NewChildVimServer(l.Addr().String())
+	p, err := NewChildVimServer(l.Addr().String(), args)
 	if err != nil {
 		return nil, nil, err
 	}

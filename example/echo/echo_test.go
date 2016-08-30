@@ -16,7 +16,7 @@ hi!
 {'msg': 'hi!'}`
 
 func TestExampleEcho(t *testing.T) {
-	cli, closer, err := vim.NewChildClient(&myHandler{})
+	cli, closer, err := vim.NewChildClient(&myHandler{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
