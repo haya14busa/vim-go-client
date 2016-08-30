@@ -15,6 +15,9 @@ import (
 	"time"
 )
 
+// ErrExpr represents "expr" command error.
+var ErrExpr = errors.New("the evaluation fails or the result can't be encoded in JSON")
+
 // Client represents Vim client.
 type Client struct {
 	// rw is readwriter for communication between go-server and vim-server.
@@ -83,7 +86,7 @@ func NewChildClient(handler Handler) (*Client, *ChildCliCloser, error) {
 
 	h := &getCliHandler{
 		handler: handler,
-		chCli:   make(chan *Client, 1),
+		chCli:   make(chan *Client),
 	}
 
 	server := &Server{Handler: h}
@@ -146,7 +149,14 @@ func (cli *Client) Expr(expr string) (Body, error) {
 	if err := json.NewEncoder(cli.rw).Encode(v); err != nil {
 		return nil, err
 	}
-	return cli.waitResp(n)
+	body, err := cli.waitResp(n)
+	if err != nil {
+		return nil, err
+	}
+	if fmt.Sprintf("%s", body) == "ERROR" {
+		return nil, ErrExpr
+	}
+	return body, nil
 }
 
 // Call runs command "call" (:h channel-commands).
