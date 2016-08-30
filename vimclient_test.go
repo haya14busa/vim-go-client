@@ -15,6 +15,8 @@ var cli *vim.Client
 var defaultServeFunc = func(cli *vim.Client, msg *vim.Message) {}
 var serveFunc = defaultServeFunc
 
+var vimArgs = []string{"-Nu", "NONE", "-i", "NONE"}
+
 type testHandler struct{}
 
 func (h *testHandler) Serve(cli *vim.Client, msg *vim.Message) {
@@ -22,7 +24,7 @@ func (h *testHandler) Serve(cli *vim.Client, msg *vim.Message) {
 }
 
 func TestMain(m *testing.M) {
-	c, closer, err := vim.NewChildClient(&testHandler{}, nil)
+	c, closer, err := vim.NewChildClient(&testHandler{}, vimArgs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,7 +36,7 @@ func TestMain(m *testing.M) {
 
 func BenchmarkNewChildClient(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, closer, err := vim.NewChildClient(&testHandler{}, nil)
+		_, closer, err := vim.NewChildClient(&testHandler{}, vimArgs)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -50,7 +52,7 @@ func TestNewChildClient(t *testing.T) {
 	}
 	defer func() { serveFunc = defaultServeFunc }()
 
-	cli, closer, err := vim.NewChildClient(&testHandler{}, nil)
+	cli, closer, err := vim.NewChildClient(&testHandler{}, vimArgs)
 	if err != nil {
 		t.Fatal(err)
 	}
