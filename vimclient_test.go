@@ -15,7 +15,7 @@ var cli *vim.Client
 var defaultServeFunc = func(cli *vim.Client, msg *vim.Message) {}
 var serveFunc = defaultServeFunc
 
-var vimArgs = []string{"-Nu", "NONE", "-i", "NONE"}
+var vimArgs = []string{"-Nu", "NONE", "-i", "NONE", "-n"}
 
 type testHandler struct{}
 
