@@ -1,11 +1,16 @@
 package vim_test
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	vim "github.com/haya14busa/vim-go-client"
 )
@@ -16,6 +21,8 @@ var defaultServeFunc = func(cli *vim.Client, msg *vim.Message) {}
 var serveFunc = defaultServeFunc
 
 var vimArgs = []string{"-Nu", "NONE", "-i", "NONE", "-n"}
+
+var waitLog = func() { time.Sleep(1 * time.Millisecond) }
 
 type testHandler struct{}
 
@@ -72,6 +79,111 @@ func TestNewChildClient(t *testing.T) {
 	}
 }
 
+func TestClient_Send(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Send(&vim.Message{MsgID: -1, Body: "hi, how are you?"})
+	waitLog()
+	if !containsString(tmp, "hi, how are you?") {
+		t.Error("cli.Send should send message to Vim")
+	}
+}
+
+func TestClient_Write(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Write([]byte("hi, how are you?"))
+	waitLog()
+	if !containsString(tmp, "hi, how are you?") {
+		t.Error("cli.Write should send message to Vim")
+	}
+}
+
+func TestClient_Redraw_force(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Redraw("force")
+	waitLog()
+	if !containsString(tmp, ": redraw") {
+		t.Error(`cli.Redraw("force") should redraw Vim`)
+	}
+}
+
+func TestClient_Redraw(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Redraw("")
+	waitLog()
+	if !containsString(tmp, ": redraw") {
+		t.Error(`cli.Redraw("") should redraw`)
+	}
+}
+
+func TestClient_Ex(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Ex("echo 'hi'")
+	waitLog()
+	if !containsString(tmp, ": Executing ex command") {
+		t.Error(`cli.Ex() should execute ex command`)
+	}
+}
+
+func TestClient_Normal(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Normal("gg")
+	waitLog()
+	if !containsString(tmp, ": Executing normal command") {
+		t.Error(`cli.Normal() should execute normal command`)
+	}
+}
+
+func TestClient_Expr_log(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Expr("0")
+	waitLog()
+	if !containsString(tmp, ": Evaluating expression") {
+		t.Error(`cli.Expr() should evaluate expr`)
+	}
+}
+
 func TestClient_Expr(t *testing.T) {
 	tests := []struct {
 		in   string
@@ -121,4 +233,40 @@ func TestClient_Expr_fail(t *testing.T) {
 			t.Errorf("cli.Expr(%v) expects error but got %v", tt.in, got)
 		}
 	}
+}
+
+func TestClient_Call(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "vim-go-client-test-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmp.Close()
+	defer os.Remove(tmp.Name())
+	cli.Expr(fmt.Sprintf("ch_logfile('%s', 'w')", tmp.Name()))
+	cli.Call("eval", `"1"`)
+	waitLog()
+	if !containsString(tmp, ": Calling") {
+		t.Error(`cli.Expr() should call func`)
+	}
+}
+
+func TestClient_Call_resp(t *testing.T) {
+	got, err := cli.Call("eval", `v:true`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, true) {
+		t.Error("cli.Call() should return responses")
+	}
+}
+
+// containsString checks reader contains str. It doens't handle NL and consumes reader!
+func containsString(r io.Reader, str string) bool {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), str) {
+			return true
+		}
+	}
+	return false
 }
