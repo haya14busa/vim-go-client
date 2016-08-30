@@ -1,7 +1,6 @@
 package vim
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/haya14busa/vim-go-client/remote"
+	"github.com/kr/pty"
 )
 
 // Process represents Vim server process.
@@ -57,7 +57,8 @@ func NewChildVimServer(addr string, args []string) (*Process, error) {
 		return nil, err
 	}
 
-	if err := cmd.Start(); err != nil {
+	// Emulate terminal to avoid "Input is not from a terminal"
+	if _, err := pty.Start(cmd); err != nil {
 		return nil, err
 	}
 
@@ -72,14 +73,10 @@ func vimServerCmd(extraArgs []string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, fmt.Errorf("vim not found: %v", err)
 	}
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
+
 	cmd := &exec.Cmd{
-		Path:   path,
-		Args:   append([]string{path}, extraArgs...),
-		Stdin:  bytes.NewReader(nil), // Avoid "Input is not from a terminal"
-		Stdout: &stdout,
-		Stderr: &stderr,
+		Path: path,
+		Args: append([]string{path}, extraArgs...),
 	}
 	return cmd, nil
 }
