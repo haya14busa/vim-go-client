@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.7
+  - tip
+
+os:
+  - linux
+  - osx
+
+install:
+  - bash scripts/install-vim.sh
+  - export PATH=$HOME/vim/bin:$PATH
+
+script:
+  - go test -v -race ./...
