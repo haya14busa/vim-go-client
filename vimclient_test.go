@@ -20,11 +20,6 @@ var cli *vim.Client
 
 var defaultServeFunc = func(cli *vim.Client, msg *vim.Message) {}
 
-var (
-	serveFunc  = defaultServeFunc
-	serveFunMu sync.RWMutex
-)
-
 var vimArgs = []string{"-Nu", "NONE", "-i", "NONE", "-n"}
 
 var waitLog = func() { time.Sleep(1 * time.Millisecond) }
@@ -66,17 +61,12 @@ func TestNewChildClient(t *testing.T) {
 	serveFuncCalled := false
 	var serveFuncCalledMu sync.RWMutex
 
-	serveFunMu.Lock()
-	serveFunc = func(cli *vim.Client, msg *vim.Message) {
+	serveFunc := func(cli *vim.Client, msg *vim.Message) {
 		// t.Log(msg)
 		serveFuncCalledMu.Lock()
 		serveFuncCalled = true
 		serveFuncCalledMu.Unlock()
 	}
-	defer func() {
-		serveFunMu.Unlock()
-		serveFunc = defaultServeFunc
-	}()
 
 	cli, closer, err := vim.NewChildClient(&testHandler{f: serveFunc}, vimArgs)
 	if err != nil {
