@@ -12,6 +12,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -50,15 +51,18 @@ var _ Handler = &getCliHandler{}
 type getCliHandler struct {
 	handler Handler
 
-	connected bool
-	chCli     chan *Client
+	connected   bool
+	connectedMu sync.RWMutex
+	chCli       chan *Client
 }
 
 func (h *getCliHandler) Serve(cli *Client, msg *Message) {
+	h.connectedMu.Lock()
 	if !h.connected {
 		h.chCli <- cli
 		h.connected = true
 	}
+	h.connectedMu.Unlock()
 	h.handler.Serve(cli, msg)
 }
 

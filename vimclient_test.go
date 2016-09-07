@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,16 +19,26 @@ import (
 var cli *vim.Client
 
 var defaultServeFunc = func(cli *vim.Client, msg *vim.Message) {}
-var serveFunc = defaultServeFunc
+
+var (
+	serveFunc  = defaultServeFunc
+	serveFunMu sync.RWMutex
+)
 
 var vimArgs = []string{"-Nu", "NONE", "-i", "NONE", "-n"}
 
 var waitLog = func() { time.Sleep(1 * time.Millisecond) }
 
-type testHandler struct{}
+type testHandler struct {
+	f func(cli *vim.Client, msg *vim.Message)
+}
 
 func (h *testHandler) Serve(cli *vim.Client, msg *vim.Message) {
-	serveFunc(cli, msg)
+	fn := h.f
+	if fn == nil {
+		fn = defaultServeFunc
+	}
+	fn(cli, msg)
 }
 
 func TestMain(m *testing.M) {
@@ -53,13 +64,21 @@ func BenchmarkNewChildClient(b *testing.B) {
 
 func TestNewChildClient(t *testing.T) {
 	serveFuncCalled := false
+	var serveFuncCalledMu sync.RWMutex
+
+	serveFunMu.Lock()
 	serveFunc = func(cli *vim.Client, msg *vim.Message) {
 		// t.Log(msg)
+		serveFuncCalledMu.Lock()
 		serveFuncCalled = true
+		serveFuncCalledMu.Unlock()
 	}
-	defer func() { serveFunc = defaultServeFunc }()
+	defer func() {
+		serveFunMu.Unlock()
+		serveFunc = defaultServeFunc
+	}()
 
-	cli, closer, err := vim.NewChildClient(&testHandler{}, vimArgs)
+	cli, closer, err := vim.NewChildClient(&testHandler{f: serveFunc}, vimArgs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,9 +86,13 @@ func TestNewChildClient(t *testing.T) {
 	if _, err = cli.Expr("1 + 1"); err != nil {
 		t.Fatal(err)
 	}
+
+	serveFuncCalledMu.Lock()
 	if !serveFuncCalled {
 		t.Error("serveFunc must be called")
 	}
+	serveFuncCalledMu.Unlock()
+
 	status, err := cli.Expr("ch_status(g:vim_go_client_handler)")
 	if err != nil {
 		t.Fatal(err)
