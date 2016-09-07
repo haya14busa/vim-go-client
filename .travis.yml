@@ -9,6 +9,7 @@ os:
   - osx
 
 install:
+  - go get -d -v -t ./...
   - bash scripts/install-vim.sh
   - export PATH=$HOME/vim/bin:$PATH
 
