@@ -21,7 +21,10 @@ type myHandler struct{}
 func (h *myHandler) Serve(cli *vim.Client, msg *vim.Message) {
 	log.Printf("receive: %#v", msg)
 	if msg.MsgID > 0 && msg.Body == "hi" {
-		cli.Send(&vim.Message{msg.MsgID, "hi from connected vim client"})
+		cli.Send(&vim.Message{
+			MsgID: msg.MsgID,
+			Body:  "hi from connected vim client",
+		})
 	}
 }
 
