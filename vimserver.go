@@ -127,6 +127,8 @@ func connectTmpFile(addr string) (*os.File, error) {
 	}
 	defer tmpfile.Close()
 
-	connectTemplate.Execute(tmpfile, struct{ Addr string }{addr})
+	if err := connectTemplate.Execute(tmpfile, struct{ Addr string }{addr}); err != nil {
+		return nil, err
+	}
 	return tmpfile, nil
 }
