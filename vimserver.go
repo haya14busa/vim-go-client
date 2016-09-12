@@ -14,8 +14,7 @@ import (
 
 // Process represents Vim server process.
 type Process struct {
-	cmd  *exec.Cmd
-	done chan error
+	cmd *exec.Cmd
 
 	script *os.File
 }
