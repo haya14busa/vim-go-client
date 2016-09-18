@@ -10,7 +10,7 @@ lintdeps:
 
 lint: lintdeps
 	! gofmt -d -s . | grep '^' # exit 1 if any output given
-	! golint ./... | grep '^'
+	golint -set_exit_status ./...
 	go vet ./...
 	errcheck -asserts -ignoretests -ignore 'Close|Start|Serve|Remove'
 	misspell -error **/*.go **/*.md
