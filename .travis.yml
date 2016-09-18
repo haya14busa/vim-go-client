@@ -11,7 +11,6 @@ os:
 install:
   - go get -d -v -t ./...
   - go get github.com/mattn/goveralls
-  - go get golang.org/x/tools/cmd/cover
   - bash scripts/install-vim.sh
   - export PATH=$HOME/vim/bin:$PATH
 
