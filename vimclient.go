@@ -131,12 +131,7 @@ func (cli *Client) Redraw(force string) error {
 func (cli *Client) Ex(cmd string) error {
 	var err error
 	encoder := json.NewEncoder(cli.rw)
-	err = encoder.Encode([]interface{}{"ex", "let v:errmsg = ''"})
 	err = encoder.Encode([]interface{}{"ex", cmd})
-	body, err := cli.Expr("v:errmsg")
-	if errmsg, ok := body.(string); ok && errmsg != "" {
-		err = errors.New(errmsg)
-	}
 	return err
 }
 

@@ -6,9 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"text/template"
-	"time"
 
-	"github.com/haya14busa/vim-go-client/remote"
 	"github.com/kr/pty"
 )
 
@@ -78,45 +76,6 @@ func vimServerCmd(extraArgs []string) (*exec.Cmd, error) {
 		Args: append([]string{path}, extraArgs...),
 	}
 	return cmd, nil
-}
-
-// Connect connects server to Vim by servername (:h --servername)
-func Connect(addr, vimServerName string, server *Server) (*Client, error) {
-	if !remote.IsServed(vimServerName) {
-		return nil, fmt.Errorf("server not found in vim --serverlist: %v", vimServerName)
-
-	}
-
-	tmpfile, err := connectTmpFile(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := exec.Command(
-		"vim",
-		"--servername", vimServerName,
-		"--remote-expr", fmt.Sprintf("execute(':source %v')", tmpfile.Name()),
-	)
-
-	savedHandler := server.Handler
-
-	h := &getCliHandler{
-		handler: savedHandler,
-		chCli:   make(chan *Client, 1),
-	}
-	server.Handler = h
-	defer func() { server.Handler = savedHandler }()
-
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	select {
-	case cli := <-h.chCli:
-		return cli, nil
-	case <-time.After(15 * time.Second):
-		return nil, ErrTimeOut
-	}
 }
 
 func connectTmpFile(addr string) (*os.File, error) {
