@@ -197,7 +197,7 @@ func (cli *Client) waitResp(n int) (Body, error) {
 	case body := <-cli.responses[n]:
 		delete(cli.responses, n)
 		return body, nil
-	case <-time.After(15 * time.Second):
+	case <-time.After(1 * time.Minute):
 		return nil, ErrTimeOut
 	}
 }
